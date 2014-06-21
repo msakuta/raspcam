@@ -5,8 +5,35 @@
 #define CAM_H 240
 #define WINNAME "cameratest"
 
-int main(){
-	std::cout << "Hello, world!" << std::endl;
+int main(int argc, char *argv[]){
+	int cam_w = CAM_W;
+	int cam_h = CAM_H;
+	int disp_w = cam_w;
+	int disp_h = cam_h;
+
+	if(2 < argc){
+		// Get desired capture size if provided
+		cam_w = atoi(argv[1]);
+		cam_h = atoi(argv[2]);
+		if(cam_w == 0 || cam_h == 0){
+			std::cerr << "capture size arguments must be positive integer" << std::endl;
+			return -1;
+		}
+
+		// Get desired display size if provided
+		disp_w = 3 < argc ? atoi(argv[3]) : cam_w;
+		disp_h = 4 < argc ? atoi(argv[4]) : cam_h;
+		if(disp_w == 0 || disp_h == 0){	
+			std::cerr << "display size arguments must be positive integer" << std::endl;
+			return -1;
+		}
+			
+		std::cout << "Camera resolution is set: "
+			<< cam_w << " x " << cam_h << std::endl;
+		std::cout << "Display resolution is set: "
+			<< disp_w << " x " << disp_h << std::endl;
+	}
+
 	cv::VideoCapture cap;
 	cv::Mat frame, disp;
 	cap.open(0);
@@ -14,25 +41,31 @@ int main(){
 		std::cout << "Camera open failed" << std::endl;
 		return 1;
 	}
-	cap.set(CV_CAP_PROP_FRAME_WIDTH, CAM_W);
-	cap.set(CV_CAP_PROP_FRAME_HEIGHT, CAM_H);
+	cap.set(CV_CAP_PROP_FRAME_WIDTH, cam_w);
+	cap.set(CV_CAP_PROP_FRAME_HEIGHT, cam_h);
 	cv::namedWindow(WINNAME, CV_WINDOW_AUTOSIZE);
 	cap.read(frame);
-	disp.create(cv::Size(CAM_W, CAM_H), CV_8UC3);
 	while(1){
 		if(cap.grab() == 0)
 			continue;
 		if(cap.retrieve(frame, 0) == 0)
 			continue;
-		cv::imshow(WINNAME, disp);
+
+		// resize only if display size differs from capture size to reduce copies
+		if(cam_w != disp_w || cam_h != disp_h){
+			cv::resize(frame, disp, cv::Size(disp_w, disp_h), cv::INTER_NEAREST);
+			cv::imshow(WINNAME, disp);
+		}
+		else
+			cv::imshow(WINNAME, frame);
 		int key = cv::waitKey(1);
 		if(0 <= key){
-			std::cerr << "Camera display failed" << std::endl;
+			std::cerr << "Input" << std::endl;
 			break;
 		}
 	}
+//	cv::imwrite("image.jpg", frame);
 	cap.release();
-	disp.release();
 	cv::destroyWindow(WINNAME);
 	return 0;
 }
